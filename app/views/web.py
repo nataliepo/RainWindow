@@ -21,6 +21,10 @@ import settings as settings
 
 class DefaultHandler(tornado.web.RequestHandler):
     
+    def __init__(self, **kwargs):
+    	self.semaphore = self.get('semaphore', False)
+    	return self
+    	
     def render_cheetah_template(self, type, json, config_arg={}, **kwargs):
         json.update({
 			# constants
@@ -61,9 +65,13 @@ class DefaultAPI(tornado.web.RequestHandler):
         return
 
 class RainNoRainHandler(DefaultHandler):
-    def get(self):
+    def get(self, semaphore):
     	# this needs to be a string
-    	new_ticket = ("%s" % models.ticket.get_new_ticket())
+    	# new_ticket = ("%s" % models.ticket.get_new_ticket())
+    	
+    	sys.stderr.write("About to acquire semaphore...\n")
+    	semaphore.acquire()
+    	sys.stderr.write("Acquired!!!\n")
     	
     	# set this as a cookie.
     	# self.set_cookie('ticket', new_ticket)
@@ -102,15 +110,21 @@ class CheckLineForRainRoom(DefaultAPI):
         return
 
 class LeaveRainRoomAPI(DefaultAPI):
-    def get(self, ending):
-        this_ticket = self.get_arguments('ticket_number', [])
-        
-        if (len(this_ticket) > 0):
-            this_ticket = int(this_ticket[0])
-        else:
-            this_ticket = 0
-        sys.stderr.write("This ticket = %d and the active ticket = %d.\n" % 
-            (this_ticket, models.ticket.get_active_ticket()))
+    def get(self, ending, semaphore):
+    
+        sys.stderr.write("Release called...\n")
+
+        semaphore.release()
+        sys.stderr.write("Release done!\n")
+    
+        #this_ticket = self.get_arguments('ticket_number', [])
+        #
+        #if (len(this_ticket) > 0):
+        #    this_ticket = int(this_ticket[0])
+        #else:
+        #    this_ticket = 0
+        #sys.stderr.write("This ticket = %d and the active ticket = %d.\n" % 
+        #    (this_ticket, models.ticket.get_active_ticket()))
             
         # if this ticket was in the waiting room, then move them forward.
         

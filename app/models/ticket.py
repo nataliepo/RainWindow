@@ -1,32 +1,68 @@
 import sys
 import sqlite3 
+import threading
 
 import settings
 
-def get_active_ticket():
-    con = sqlite3.connect(settings.SQLITE_DB)
-     
-    with con:	
-        cur = con.cursor()    
-        cur.execute('select active_ticket from ticket;')
-    
-        original_ticket_number = int(cur.fetchone()[0])
+
+
+class TicketSemaphore:
+    def __init__(self, limit):
+        sys.stderr.write("[ticketSemaphore::init]\n")
+        self.semaphore = threading.BoundedSemaphore(limit)
+
+    def acquire():
+        return self.semaphore.acquire()
+
+    def release():
+        return self.semaphore.release()
         
-        return original_ticket_number
+    def destroy():
+        self.semaphore = False
+        
+
+
+def startSemaphore(semaphore, limit):
+	if (semaphore):
+		# release it
+		semaphore.destroy()
+		semaphore = False
+		
+	semaphore = TicketSemaphore(1)
+		
+	
+
+def get_active_ticket(semaphore):
+
+    sys.stderr.write("[get_active_ticket] Need to find out how to get the count in the semaphore...\n")
+
+    semaphore.acquire()
     
-    return -1
+    #con = sqlite3.connect(settings.SQLITE_DB)
+    # 
+    #with con:	
+    #    cur = con.cursor()    
+    #    cur.execute('select active_ticket from ticket;')
+    #
+    #    original_ticket_number = int(cur.fetchone()[0])
+    #    
+    #    return original_ticket_number
+    #
+    #return -1
 
 ## CALLED WHEN A USER LEAVES
-def move_window_forward():
-    original_active_ticket = get_active_ticket()
+def move_window_forward(semaphore):
+    semaphore.release()
 
-    con = sqlite3.connect(settings.SQLITE_DB)
-    with con:
-        cur = con.cursor()
-        cur.execute("update ticket set active_ticket=%d where active_ticket=%d;" % (original_active_ticket + 1, original_active_ticket))
+    #original_active_ticket = get_active_ticket()
+
+    #con = sqlite3.connect(settings.SQLITE_DB)
+    #with con:
+    #    cur = con.cursor()
+    #    cur.execute("update ticket set active_ticket=%d where active_ticket=%d;" % (original_active_ticket + 1, original_active_ticket))
         
         
-    return
+    #return
 
 ## Lists how many people have been to the room.
 def get_max_waiting_ticket():
